@@ -160,7 +160,8 @@ TextureImporter:
     secondaryTextures: []
     spriteCustomMetadata:
       entries: []
-    nameFileIdTable: {}
+    nameFileIdTable:
+      FARLOOK_STUDIOS_TM_LOGO_BOX_PIXEL_ART_0: 4234316235810633887
   mipmapLimitGroupName: 
   pSDRemoveMatte: 0
   userData: 
