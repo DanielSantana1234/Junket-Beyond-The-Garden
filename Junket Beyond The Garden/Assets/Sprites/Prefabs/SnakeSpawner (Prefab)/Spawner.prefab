@@ -14,7 +14,7 @@ GameObject:
   - component: {fileID: 5179766730650256987}
   - component: {fileID: 1604123420337485654}
   - component: {fileID: 7936533293262893946}
-  m_Layer: 0
+  m_Layer: 6
   m_Name: Spawner
   m_TagString: Snake
   m_Icon: {fileID: 0}
