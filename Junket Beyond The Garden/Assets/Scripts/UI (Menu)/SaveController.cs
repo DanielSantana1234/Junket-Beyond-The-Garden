@@ -7,18 +7,23 @@ public class SaveData
 {
     public Vector3 playerposition;  // only one definition!
     public string mapboundary;
+    private InventoryController inventoryController;
 }
 
 public class SaveController : MonoBehaviour
 {
     private string saveLocation;
 
+    public InventoryController inventoryController;
+
+    [System.Obsolete]
     void Start()
     {
         // Define save location
         saveLocation = Path.Combine(Application.persistentDataPath, "saveData.json");
 
         LoadGame();
+        inventoryController = FindObjectOfType<InventoryController>();
     }
 
     public void SaveGame()
@@ -29,72 +34,78 @@ public class SaveController : MonoBehaviour
         PlayerSaveData saveData = new PlayerSaveData
         {
             playerPosition = player.transform.position,
-            mapBoundary = confiner.BoundingShape2D.gameObject.name // ✅ new API
+            mapBoundary = confiner.BoundingShape2D.gameObject.name,inventorySaveData = inventoryController.GetInventoryItems() // ✅ new API
         };
 
         File.WriteAllText(saveLocation, JsonUtility.ToJson(saveData));
     }
 
     public void LoadGame()
+{
+    if (File.Exists(saveLocation))
     {
-        if (File.Exists(saveLocation))
+        // First, deserialize JSON into a SaveData object
+        PlayerSaveData saveData = JsonUtility.FromJson<PlayerSaveData>(File.ReadAllText(saveLocation));
+
+        // Now you can safely restore inventory
+        inventoryController.SetInventoryItems(saveData.inventorySaveData);
+
+        // Restore player position
+        var player = GameObject.FindGameObjectWithTag("Player");
+        if (player != null)
         {
-            PlayerSaveData saveData = JsonUtility.FromJson<PlayerSaveData>(File.ReadAllText(saveLocation));
+            player.transform.position = saveData.playerPosition;
+        }
+        else
+        {
+            Debug.LogWarning("⚠️ Player not found in scene when loading!");
+        }
 
-            // Find player
-            var player = GameObject.FindGameObjectWithTag("Player");
-            if (player != null)
+        // Restore confiner boundary
+        var confiner = FindAnyObjectByType<CinemachineConfiner2D>();
+        if (confiner != null)
+        {
+            var boundaryObj = GameObject.Find(saveData.mapBoundary);
+            if (boundaryObj != null)
             {
-                player.transform.position = saveData.playerPosition;
-            }
-            else
-            {
-                Debug.LogWarning("⚠️ Player not found in scene when loading!");
-            }
-
-            // Restore confiner boundary
-            var confiner = FindAnyObjectByType<CinemachineConfiner2D>();
-            if (confiner != null)
-            {
-                var boundaryObj = GameObject.Find(saveData.mapBoundary);
-                if (boundaryObj != null)
+                var collider = boundaryObj.GetComponent<PolygonCollider2D>();
+                if (collider != null)
                 {
-                    var collider = boundaryObj.GetComponent<PolygonCollider2D>();
-                    if (collider != null)
-                    {
-                        confiner.BoundingShape2D = collider;
-                    }
-                    else
-                    {
-                        Debug.LogWarning($"⚠️ {saveData.mapBoundary} has no PolygonCollider2D.");
-                    }
+                    confiner.BoundingShape2D = collider;
                 }
                 else
                 {
-                    Debug.LogWarning($"⚠️ Map boundary '{saveData.mapBoundary}' not found in scene.");
+                    Debug.LogWarning($"⚠️ {saveData.mapBoundary} has no PolygonCollider2D.");
                 }
             }
             else
             {
-                Debug.LogWarning("⚠️ No CinemachineConfiner2D found in scene.");
-            }
-
-            // Re-attach camera follow/lookAt
-            var vcam = FindAnyObjectByType<CinemachineCamera>();
-            if (vcam != null && player != null)
-            {
-                vcam.Follow = player.transform;
-                vcam.LookAt = player.transform;
-            }
-            else
-            {
-                Debug.LogWarning("⚠️ No CinemachineCamera found in scene or player missing.");
+                Debug.LogWarning($"⚠️ Map boundary '{saveData.mapBoundary}' not found in scene.");
             }
         }
         else
         {
-            SaveGame();
+            Debug.LogWarning("⚠️ No CinemachineConfiner2D found in scene.");
+        }
+
+        // Re-attach camera follow/lookAt
+        var vcam = FindAnyObjectByType<CinemachineCamera>();
+        if (vcam != null && player != null)
+        {
+            vcam.Follow = player.transform;
+            vcam.LookAt = player.transform;
+        }
+        else
+        {
+            Debug.LogWarning("⚠️ No CinemachineCamera found in scene or player missing.");
         }
     }
+    else
+    {
+        SaveGame();
+    }
 }
+
+    }
+
 
